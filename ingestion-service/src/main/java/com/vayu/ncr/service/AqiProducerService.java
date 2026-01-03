@@ -1,7 +1,12 @@
 package com.vayu.ncr.service;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -19,24 +24,32 @@ public class AqiProducerService {
 
     private static final String TOPIC = "raw-aqi-data";
     
-    // 🔴 PASTE YOUR TOKEN INSIDE THE QUOTES BELOW 🔴
-    private static final String API_TOKEN = TOKEN_VALUE_HERE; 
     
     // We will track these 3 cities for now
     private static final String[] CITIES = {"delhi", "noida","here","geo:28.58;77.44","geo:28.61;77.23"};
-
+    
+    private static final List<String> MONITORED_LOCATIONS = Arrays.asList(
+            "geo:28.58;77.44",      // Greater Noida (Sector 1)
+            "geo:28.62;77.38",      // Noida (Sector 62)
+            "delhi/anand-vihar",    // Delhi (Pollution Hotspot)
+            "gurugram/sector-51"    // Gurugram
+    );
+    
     private final KafkaTemplate<String, AqiDataEvent> kafkaTemplate;
 
     private final RestTemplate restTemplate; 
 
     private final ObjectMapper objectMapper;
-
+    
+    @Value("${waqi.api.token}")
+    private String API_TOKEN;
+    
     // Runs every 10 seconds
-    @Scheduled(fixedRate = 10000)
-    public void fetchAndStreamRealData() {
-        for (String city : CITIES) {
+    //@Scheduled(fixedRate = 10000)
+    @Cacheable(value = "aqi_cache", key = "#locationParam")
+    public AqiDataEvent fetchAndStreamRealData( String locationParam) {
             try {
-                String url = "https://api.waqi.info/feed/" + city + "/?token="+API_TOKEN;
+                String url = "https://api.waqi.info/feed/" + locationParam + "/?token="+API_TOKEN;
                 String response = restTemplate.getForObject(url, String.class);
 
                 JsonNode root = objectMapper.readTree(response);
@@ -47,7 +60,7 @@ public class AqiProducerService {
                     
                     String stationName = cityInfo.path("name").asText();
                     AqiDataEvent event = new AqiDataEvent();
-                    event.setCity(city);
+                    event.setCity(locationParam);
                     event.setStationId("WAQI-" + data.path("idx").asInt());
                     event.setAqi(data.path("aqi").asInt());
                     
@@ -63,13 +76,45 @@ public class AqiProducerService {
                     System.out.println("------------------------------------------------");
                     System.out.println("📍 Station Found: " + stationName); // <--- VALIDATION
                     System.out.println("🚀 Sent to Kafka AQI :     " + event.getAqi());
+                    return event;
             
                 } else {
-                    System.err.println("❌ API Error for " + city + ": " + root.path("data").asText());
+                    System.err.println("❌ API Error for " + locationParam + ": " + root.path("data").asText());
                 }
             } catch (Exception e) {
-                System.err.println("⚠️ Error fetching " + city + ": " + e.getMessage());
+                System.err.println("⚠️ Error fetching " + locationParam + ": " + e.getMessage());
             }
-        }
+            return null;
     }
+    
+    public void triggerBatchScan() {
+        System.out.println("🔄 Starting Batch Scan for NCR...");
+        for(String location : MONITORED_LOCATIONS) {
+            fetchAndStreamRealData(location);  }
+        System.out.println("✅ Batch Scan Completed.");
+    }
+    
+    public List<String> getMonitoredLocations() {
+        return MONITORED_LOCATIONS;
+    }
+    
+    
+    public void fetchForCoordinates(String lat, String lon) {
+        String locationParam = "geo:" + lat + ";" + lon;
+        fetchAndStreamRealData(locationParam);
+    }
+    
+    public void fetchByCityName(String city) {
+        // We pass the city name directly (e.g., "bangalore")
+        fetchAndStreamRealData(city);
+    }
+    
+    
+    @Scheduled(fixedRate = 600000)
+    @CacheEvict(value = "aqi_cache", allEntries = true)
+    public void clearCache() {
+        System.out.println("⏰ Cache Cleared! Next request will fetch fresh data.");
+    }
+    
+    
 }
