@@ -20,3 +20,19 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: vayu-postgres
+    ports:
+      - "5432:5432"  
+    environment:
+      - POSTGRES_USER=vayu_user
+      - POSTGRES_PASSWORD=vayu_password
+      - POSTGRES_DB=vayu_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data 
+      
+volumes: 
+  postgres_data:
+
