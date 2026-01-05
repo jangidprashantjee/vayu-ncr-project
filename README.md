@@ -82,3 +82,11 @@ Since waiting for real-world pollution spikes is impractical for testing, I buil
 *Data persistence verification showing the unsubscribed user removed from history table.*
 ![Database](assets/9.png)
 
+
+## 👤 Author
+**Prashant Jangid**
+* [LinkedIn](https://www.linkedin.com/in/prashant-kumar-7145001b5/)
+* [GitHub](https://github.com/jangidprashantjee)
+
+---
+*Built with passion using Java & Spring Boot.*
