@@ -45,3 +45,40 @@ Since waiting for real-world pollution spikes is impractical for testing, I buil
 2.  **Filter:** Checks if `AQI > Threshold (300)`.
 3.  **Lookup:** If dangerous, it queries its local PostgreSQL table (`aqi_subscriptions`) to find users interested in that specific city.
 4.  **Notify:** Triggers an email/notification *only* to affected users.
+
+### 1. The Trigger (Subscribe endpoint Alert service)
+*Subscribe for a city.*
+![Subscribe](assets/1.png)
+
+### 2. The Trigger (Postman)
+*Injecting simulated Hazardous data (AQI 450) via the Ingestion Service.*
+![Postman Trigger](assets/2.png)
+
+### 3. Ingestion Microservice Service
+*Ingestion microservice manual inject enpoint trigger to inject fake data *
+![Ingestion service logs](assets/4.png)
+
+### 4. The Reaction (Alert Microservices Logs)
+*Real-time :The Alert Service (Hawk) detects the spike and notifies subscribers, while the Processing Service independently archives the data.*
+![Alert Service Logs](assets/3.png)
+
+### 5. The Reaction (Processing Microservices Logs)
+*Real-time :The Processing Service also parallelly consume the event check sapital duplication,independently archives the data.*
+![Processing Service Logs](assets/5.png)
+
+### 6. The Database (PostgreSQL)
+*Data persistence verification showing the event stored in the history table.*
+![Database](assets/6.png)
+
+### 7. The Trigger (Unsubscribe)
+*Unsubscribe for a city.*
+![Unsubscribe](assets/7.png)
+
+### 8. Alert Service logs
+*Unsubscribe for a city.*
+![Alert service logs](assets/8.png)
+
+### 9. The Database (PostgreSQL)
+*Data persistence verification showing the unsubscribed user removed from history table.*
+![Database](assets/9.png)
+
