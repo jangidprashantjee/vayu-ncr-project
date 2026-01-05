@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -23,7 +25,7 @@ import lombok.RequiredArgsConstructor;
 public class AqiProducerService {
 
     private static final String TOPIC = "raw-aqi-data";
-    
+    private static final Logger logger = LoggerFactory.getLogger(AqiProducerService.class);
     
     // We will track these 3 cities for now
     private static final String[] CITIES = {"delhi", "noida","here","geo:28.58;77.44","geo:28.61;77.23"};
@@ -86,6 +88,19 @@ public class AqiProducerService {
             }
             return null;
     }
+	    
+	public void publishManualEvent(AqiDataEvent event) {
+	        
+	       
+	        if (event.getRecordedAt() == null) {
+	            event.setRecordedAt(LocalDateTime.now().toString());
+	        }
+	
+	        logger.info("🧪 MANUAL INJECTION: Pushing fake event for {} to Kafka", event.getCity());
+	        
+	        // Direct send
+	        kafkaTemplate.send("raw-aqi-data", event);
+	    }
     
     public void triggerBatchScan() {
         System.out.println("🔄 Starting Batch Scan for NCR...");

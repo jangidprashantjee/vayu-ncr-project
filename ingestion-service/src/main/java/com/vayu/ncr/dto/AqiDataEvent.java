@@ -18,4 +18,5 @@ public class AqiDataEvent {
     private double pm25;
     private double pm10;
     private String timestamp;
+    private String recordedAt;
 }

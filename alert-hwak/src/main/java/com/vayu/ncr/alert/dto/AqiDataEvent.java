@@ -1,19 +1,18 @@
-package com.vayu.ncr.processing.dto;
+package com.vayu.ncr.alert.dto;
 
-
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 public class AqiDataEvent {
-	private String stationId;
     private String city;
+    private String stationId;
+    private int aqi;
     private double latitude;
     private double longitude;
-    private int aqi;
     private double pm25;
     private double pm10;
     private String timestamp;
