@@ -21,3 +21,27 @@ graph TD
     Logic -- "Yes" --> SubDB[(Subscription DB)]
     SubDB -- "Get Emails" --> Email[📧 Send Notification]
     Logic -- "No" --> Ignore[Log & Ignore]
+```
+Instead of the Ingestion Service talking directly to the Database (tight coupling), I used the **Fan-Out Pattern** with Apache Kafka.
+
+> **How it works:**
+> 1. The **Ingestion Service** publishes a single event (`AQI Measured`).
+> 2. **Kafka** acts as the central nervous system.
+> 3. Two separate Consumer Groups listen to the same topic:
+>    * **Group A (Processing):** Archives data for long-term analysis.
+>    * **Group B (Alert Hawk):** Checks for immediate danger.
+
+**Benefit:** If the Database goes down, the Alert Service continues to send warnings. The system is resilient.
+
+Since waiting for real-world pollution spikes is impractical for testing, I built a custom **Manual Injection Pipeline**.
+
+* **Endpoint:** `POST /ingestion/inject`
+* **Purpose:** Allows developers to simulate specific disaster scenarios (e.g., "What happens if Delhi hits AQI 999?").
+* **Mechanism:** This bypasses the WAQI API scheduler and pushes a synthesized payload directly into the Kafka topic, triggering the full system reaction instantly.
+* The Alert Service is a **Stateful Microservice** that maintains its own database of user subscriptions.
+
+**The Workflow:**
+1.  **Listen:** Consumes every AQI event from Kafka.
+2.  **Filter:** Checks if `AQI > Threshold (300)`.
+3.  **Lookup:** If dangerous, it queries its local PostgreSQL table (`aqi_subscriptions`) to find users interested in that specific city.
+4.  **Notify:** Triggers an email/notification *only* to affected users.
